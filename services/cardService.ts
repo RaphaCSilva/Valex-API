@@ -77,3 +77,48 @@ function generateSecurityCode(){
 function generateExpirationDate(years: number, format: string){
     return dayjs().add(years, "year").format(format);
 }
+
+export async function activateCardService(cardId: number, cvc: string, password: string){
+    const card = await findCard(cardId);
+    validateExpiration(card.expirationDate);
+    validateCVC(card.securityCode, cvc);
+    validateAlreadyActive(card.password);
+    validatePassword(password);
+    const SALT = 10;
+    const encryptedPassword = bcrypt.hashSync(password, SALT);
+    await cardRepository.update(cardId, { password: encryptedPassword});
+}
+
+async function findCard(cardId: number){
+    const card = await cardRepository.findById(cardId);
+    if (!card){
+        throw {type: "not_found"};
+    }
+    return card;
+}
+
+function validateExpiration(expirationDate: string) {
+    const today = dayjs().format(dateFormat);
+    if (dayjs(today).isAfter(expirationDate)) {
+      throw { type: "bad_request", message: "Card expirated" };
+    }
+}
+
+function validateCVC(encryptCVC: string, cardCVC: string){
+    if(cryptr.decrypt(encryptCVC) !== cardCVC){
+        throw { type: "bad_request", message: "incorrect CVC"};
+    }
+}
+
+function validateAlreadyActive(password: string | null){
+    if(password!==null){
+        throw {type: "bad_request", message: "card already activated"};
+    }
+}
+
+function validatePassword(password: string){
+    const regex = /^[0-9]{4}$/;
+    if(!regex.test(password)){
+        throw { type: "bad_request", message: "password need to be four numbers"};
+    }
+}
