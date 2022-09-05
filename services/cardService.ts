@@ -1,4 +1,8 @@
 import * as cardRepository from "../repositories/cardRepository.js";
+import * as companyRepository from "../repositories/companyRepository.js";
+import * as employeeRepository from "../repositories/employeeRepository.js";
+import * as paymentRepository from "../repositories/paymentRepository.js";
+import * as rechargeRepository from "../repositories/rechargeRepository.js";
 import { faker } from "@faker-js/faker";
 import Cryptr from "cryptr";
 import bcrypt from "bcrypt";
@@ -121,4 +125,31 @@ function validatePassword(password: string){
     if(!regex.test(password)){
         throw { type: "bad_request", message: "password need to be four numbers"};
     }
+}
+
+export async function findTransactions(id: number){
+    const card = await findCard(id);
+    if (card.password === null) throw { type: "bad_request", message: "card inactive" };
+    const transactions = await paymentRepository.findByCardId(id);
+    const recharges = await rechargeRepository.findByCardId(id);
+    const balance = calculaBalance(transactions, recharges);
+    
+    return { 
+        balance, 
+        transactions, 
+        recharges 
+    }
+}
+
+function calculaBalance(payments: any, recharges: any) {
+    let totalPayments = 0;
+    let totalRecharges = 0;
+    for (let i = 0; i < payments.length; i++) {
+      totalPayments += payments[i].amount;
+    }
+    for (let i = 0; i < recharges.length; i++) {
+      totalRecharges += recharges[i].amount;
+    }
+    const balance = totalRecharges - totalPayments
+    return balance;
 }
