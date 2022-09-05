@@ -119,20 +119,20 @@ export async function block(id: number, password: string){
     validateActivated(card.password);
     validateExpiration(card.expirationDate);
     validateBlocked(card.isBlocked);
-    verifiyPassword(password, card.password);
+    verifyPassword(password, card.password);
     
     await cardRepository.update(id, {isBlocked: true});
 }
 
-function verifiyPassword(password: string, cardPassword: string) {
+export function verifyPassword(password: string, cardPassword: string) {
     if (!bcrypt.compareSync(password, cardPassword)) {
       throw { type: "unauthorized", message: "wrong password" };
     }
 }
 
-function validateBlocked(blocked: boolean) {
+export function validateBlocked(blocked: boolean) {
     if (blocked) {
-      throw { type: "bad_request", message: "this card is already blocked" };
+      throw { type: "bad_request", message: "this card is blocked" };
     }
 }
 
@@ -147,7 +147,7 @@ export async function unblock(id: number, password: string){
     validateActivated(card.password);
     validateExpiration(card.expirationDate);
     validateUnblocked(card.isBlocked);
-    verifiyPassword(password, card.password);
+    verifyPassword(password, card.password);
     
     await cardRepository.update(id, {isBlocked: false});
 }
