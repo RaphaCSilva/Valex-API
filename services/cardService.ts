@@ -1,9 +1,16 @@
 import * as cardRepository from "../repositories/cardRepository.js";
 import { faker } from "@faker-js/faker";
+import Cryptr from "cryptr";
 import bcrypt from "bcrypt";
 import dayjs from "dayjs";
+import dotenv from "dotenv";
+import customParseFormat from "dayjs/plugin/customParseFormat.js"
 import { findById } from "../repositories/employeeRepository.js";
 import { validateAPIkey } from "./utilService.js";
+
+dayjs.extend(customParseFormat);
+dotenv.config();
+const cryptr = new Cryptr(process.env.CRYPTR_SECRET);
 
 const expirationTimeYears = 5;
 const dateFormat = "MM/YY";
@@ -64,8 +71,7 @@ function generateCardHolderName(employeeName: string){
 
 function generateSecurityCode(){
     const securityCode = faker.finance.creditCardCVV();
-    const SALT = 8;
-    return bcrypt.hashSync(securityCode, SALT)
+    return cryptr.encrypt(securityCode);
 }
 
 function generateExpirationDate(years: number, format: string){
