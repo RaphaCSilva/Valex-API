@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { rechargeService } from "../services/rechargeService";
+import { rechargeService } from "../services/rechargeService.js";
 
 export async function recharge(req: Request, res: Response) {
   const { amount } = req.body;
