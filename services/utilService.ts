@@ -1,5 +1,13 @@
 import { findByApiKey } from "../repositories/companyRepository.js";
+import * as cardRepository from "../repositories/cardRepository.js";
 
+export async function findCard(cardId: number){
+    const card = await cardRepository.findById(cardId);
+    if (!card){
+        throw {type: "not_found"};
+    }
+    return card;
+}
 
 export async function validateAPIkey(APIkey: string){
     const company = await findByApiKey(APIkey);
@@ -36,4 +44,10 @@ export function generateCardHolderName(employeeName: string){
     }
     let cardName = nameFixed.toString();
     return cardName.replace(/,/g, " ");
+}
+
+export function validateActivated(password: string | null) {
+    if (password === null) {
+      throw { type: "bad_request", message: "card inactive" };
+    }
 }

@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import dotenv from "dotenv";
 import customParseFormat from "dayjs/plugin/customParseFormat.js"
 import { findById } from "../repositories/employeeRepository.js";
-import { validateAPIkey, calculaBalance, generateCardHolderName } from "./utilService.js";
+import { validateAPIkey, calculaBalance, generateCardHolderName, findCard } from "./utilService.js";
 
 dayjs.extend(customParseFormat);
 dotenv.config();
@@ -74,15 +74,7 @@ export async function activateCardService(cardId: number, cvc: string, password:
     await cardRepository.update(cardId, { password: encryptedPassword});
 }
 
-async function findCard(cardId: number){
-    const card = await cardRepository.findById(cardId);
-    if (!card){
-        throw {type: "not_found"};
-    }
-    return card;
-}
-
-function validateExpiration(expirationDate: string) {
+export function validateExpiration(expirationDate: string) {
     const today = dayjs().format(dateFormat);
     if (dayjs(today).isAfter(expirationDate)) {
       throw { type: "bad_request", message: "Card expirated" };
@@ -144,7 +136,7 @@ function validateBlocked(blocked: boolean) {
     }
 }
 
-function validateActivated(password: string | null) {
+export function validateActivated(password: string | null) {
     if (password === null) {
       throw { type: "bad_request", message: "card inactive" };
     }
