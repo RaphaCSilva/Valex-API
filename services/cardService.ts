@@ -1,6 +1,4 @@
 import * as cardRepository from "../repositories/cardRepository.js";
-import * as companyRepository from "../repositories/companyRepository.js";
-import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as rechargeRepository from "../repositories/rechargeRepository.js";
 import { faker } from "@faker-js/faker";
@@ -10,7 +8,7 @@ import dayjs from "dayjs";
 import dotenv from "dotenv";
 import customParseFormat from "dayjs/plugin/customParseFormat.js"
 import { findById } from "../repositories/employeeRepository.js";
-import { validateAPIkey } from "./utilService.js";
+import { validateAPIkey, calculaBalance, generateCardHolderName } from "./utilService.js";
 
 dayjs.extend(customParseFormat);
 dotenv.config();
@@ -54,23 +52,6 @@ function createCardData(employeeName: string, employeeId: number, type: cardRepo
         isBlocked: false,
         type
     }
-}
-
-function generateCardHolderName(employeeName: string){
-    const arrName = employeeName.split(" ");
-    const nameFixed = [];
-    nameFixed.push(arrName[0].toUpperCase());
-    for(let i = 1; i < (arrName.length-1); i++){
-        if(arrName[i].length >=3){
-            nameFixed.push(arrName[i][0].toUpperCase());
-        }
-    }
-    const lastIndex = arrName.length - 1 
-    if(lastIndex>0){
-        nameFixed.push(arrName[lastIndex].toUpperCase());
-    }
-    let cardName = nameFixed.toString();
-    return cardName.replace(/,/g, " ");
 }
 
 function generateSecurityCode(){
@@ -141,15 +122,46 @@ export async function findTransactions(id: number){
     }
 }
 
-function calculaBalance(payments: any, recharges: any) {
-    let totalPayments = 0;
-    let totalRecharges = 0;
-    for (let i = 0; i < payments.length; i++) {
-      totalPayments += payments[i].amount;
+export async function block(id: number, password: string){
+    const card = await findCard(id);
+    validateActivated(card.password);
+    validateExpiration(card.expirationDate);
+    validateBlocked(card.isBlocked);
+    verifiyPassword(password, card.password);
+    
+    await cardRepository.update(id, {isBlocked: true});
+}
+
+function verifiyPassword(password: string, cardPassword: string) {
+    if (!bcrypt.compareSync(password, cardPassword)) {
+      throw { type: "unauthorized", message: "wrong password" };
     }
-    for (let i = 0; i < recharges.length; i++) {
-      totalRecharges += recharges[i].amount;
+}
+
+function validateBlocked(blocked: boolean) {
+    if (blocked) {
+      throw { type: "bad_request", message: "this card is already blocked" };
     }
-    const balance = totalRecharges - totalPayments
-    return balance;
+}
+
+function validateActivated(password: string | null) {
+    if (password === null) {
+      throw { type: "bad_request", message: "card inactive" };
+    }
+}
+
+export async function unblock(id: number, password: string){
+    const card = await findCard(id);
+    validateActivated(card.password);
+    validateExpiration(card.expirationDate);
+    validateUnblocked(card.isBlocked);
+    verifiyPassword(password, card.password);
+    
+    await cardRepository.update(id, {isBlocked: false});
+}
+
+function validateUnblocked(blocked: boolean) {
+    if (!blocked) {
+      throw { type: "bad_request", message: "this card is already unblocked" };
+    }
 }
